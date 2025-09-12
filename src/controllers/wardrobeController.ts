@@ -60,18 +60,11 @@ export const getWardrobeItemsByUserId = async (req: Request, res: Response): Pro
       300 // Cache for 5 minutes
     );
     
-    if (!wardrobeItems || wardrobeItems.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'No wardrobe items found for this user'
-      });
-      return;
-    }
-    
+    // Return empty array instead of 404 when no items are found
     res.status(200).json({
       success: true,
-      count: wardrobeItems.length,
-      data: wardrobeItems,
+      count: wardrobeItems ? wardrobeItems.length : 0,
+      data: wardrobeItems || [],
       fromCache: true
     });
   } catch (error) {

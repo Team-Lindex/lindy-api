@@ -1244,7 +1244,7 @@ const options: swaggerJSDoc.Options = {
           ],
           responses: {
             '200': {
-              description: 'Successful operation',
+              description: 'Successful operation (returns empty array if no items found)',
               content: {
                 'application/json': {
                   schema: {
@@ -1263,7 +1263,6 @@ const options: swaggerJSDoc.Options = {
               }
             },
             '400': { $ref: '#/components/responses/BadRequest' },
-            '404': { $ref: '#/components/responses/NotFound' },
             '500': { $ref: '#/components/responses/InternalServerError' }
           }
         }
