@@ -20,6 +20,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.28",
+    "@voltagent/core": "^1.0.0",
+    "@voltagent/libsql": "^1.0.0",
+    "@voltagent/logger": "^1.0.0",
+    "@voltagent/server-hono": "^1.0.0",
+    "ai": "^5.0.41",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.2",
@@ -31,7 +37,8 @@
     "morgan": "^1.10.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -42,8 +49,10 @@
     "@types/node": "^24.3.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@voltagent/cli": "^0.1.10",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }

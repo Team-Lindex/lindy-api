@@ -20,6 +20,11 @@ import recommendationRoutes from './routes/recommendationRoutes';
 import pageViewRoutes from './routes/pageViewRoutes';
 import productReviewRoutes from './routes/productReviewRoutes';
 import wardrobeRoutes from './routes/wardrobeRoutes';
+import agentRoutes from './routes/agentRoutes';
+import outfitRoutes from './routes/outfitRoutes';
+
+// Initialize VoltAgent
+import './voltagent';
 
 // Initialize express app
 const app: Express = express();
@@ -60,6 +65,8 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/page-views', pageViewRoutes);
 app.use('/api/reviews', productReviewRoutes);
 app.use('/api/wardrobe', wardrobeRoutes);
+app.use('/api/agent', agentRoutes);
+app.use('/api/outfit', outfitRoutes);
 
 // Apply stricter rate limiting to analytics endpoints
 app.use('/api/transactions/analytics', analyticsLimiter);
@@ -82,6 +89,8 @@ app.get('/', (req: Request, res: Response) => {
       pageViews: '/api/page-views',
       reviews: '/api/reviews',
       wardrobe: '/api/wardrobe',
+      agent: '/api/agent',
+      outfit: '/api/outfit',
     },
     documentation: '/api-docs',
   });
