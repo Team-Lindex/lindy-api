@@ -59,6 +59,10 @@ const options: swaggerJSDoc.Options = {
         name: 'Product Reviews',
         description: 'Product review endpoints',
       },
+      {
+        name: 'Wardrobe',
+        description: 'Wardrobe items endpoints',
+      },
     ],
     paths: {
       '/api/styles': {
@@ -1172,6 +1176,242 @@ const options: swaggerJSDoc.Options = {
           }
         }
       },
+      '/api/wardrobe': {
+        get: {
+          tags: ['Wardrobe'],
+          summary: 'Get all wardrobe items with pagination',
+          parameters: [
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number',
+              schema: { type: 'integer', default: 1 }
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Number of items per page',
+              schema: { type: 'integer', default: 50 }
+            }
+          ],
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer' },
+                          page: { type: 'integer' },
+                          pages: { type: 'integer' }
+                        }
+                      },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/WardrobeItem' }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/wardrobe/user/{userId}': {
+        get: {
+          tags: ['Wardrobe'],
+          summary: 'Get wardrobe items by user ID',
+          parameters: [
+            {
+              name: 'userId',
+              in: 'path',
+              description: 'User ID',
+              required: true,
+              schema: { type: 'integer' }
+            }
+          ],
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/WardrobeItem' }
+                      },
+                      fromCache: { type: 'boolean' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { $ref: '#/components/responses/BadRequest' },
+            '404': { $ref: '#/components/responses/NotFound' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/wardrobe/type/{type}': {
+        get: {
+          tags: ['Wardrobe'],
+          summary: 'Get wardrobe items by type',
+          parameters: [
+            {
+              name: 'type',
+              in: 'path',
+              description: 'Item type (top, bottoms, dress, jacket, bag, accessory)',
+              required: true,
+              schema: { type: 'string', enum: ['top', 'bottoms', 'dress', 'jacket', 'bag', 'accessory'] }
+            },
+            {
+              name: 'userId',
+              in: 'query',
+              description: 'Optional user ID to filter by',
+              schema: { type: 'integer' }
+            }
+          ],
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/WardrobeItem' }
+                      },
+                      fromCache: { type: 'boolean' }
+                    }
+                  }
+                }
+              }
+            },
+            '404': { $ref: '#/components/responses/NotFound' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/wardrobe/tag/{tag}': {
+        get: {
+          tags: ['Wardrobe'],
+          summary: 'Get wardrobe items by tag',
+          parameters: [
+            {
+              name: 'tag',
+              in: 'path',
+              description: 'Tag to search for',
+              required: true,
+              schema: { type: 'string' }
+            },
+            {
+              name: 'userId',
+              in: 'query',
+              description: 'Optional user ID to filter by',
+              schema: { type: 'integer' }
+            }
+          ],
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/WardrobeItem' }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '404': { $ref: '#/components/responses/NotFound' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/wardrobe/summary/{userId}': {
+        get: {
+          tags: ['Wardrobe'],
+          summary: 'Get wardrobe summary by user ID',
+          parameters: [
+            {
+              name: 'userId',
+              in: 'path',
+              description: 'User ID',
+              required: true,
+              schema: { type: 'integer' }
+            }
+          ],
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          totalItems: { type: 'integer' },
+                          typeBreakdown: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                type: { type: 'string' },
+                                count: { type: 'integer' },
+                                percentage: { type: 'integer' }
+                              }
+                            }
+                          },
+                          tags: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                tag: { type: 'string' },
+                                count: { type: 'integer' }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      fromCache: { type: 'boolean' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { $ref: '#/components/responses/BadRequest' },
+            '404': { $ref: '#/components/responses/NotFound' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
       '/api/transactions/group/{productGroup}': {
         get: {
           tags: ['Transactions'],
@@ -1327,6 +1567,21 @@ const options: swaggerJSDoc.Options = {
             _id: { type: 'string' },
             style: { type: 'string' },
             images: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        WardrobeItem: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            userId: { type: 'integer' },
+            imageUrl: { type: 'string' },
+            type: { type: 'string', enum: ['top', 'bottoms', 'dress', 'jacket', 'bag', 'accessory'] },
+            tags: {
               type: 'array',
               items: { type: 'string' }
             },

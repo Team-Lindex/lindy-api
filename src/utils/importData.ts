@@ -10,6 +10,7 @@ import Customer from '../models/Customer';
 import Transaction from '../models/Transaction';
 import PageView from '../models/PageView';
 import ProductReview from '../models/ProductReview';
+import WardrobeItem from '../models/WardrobeItem';
 import mongoose from 'mongoose';
 import logger from './logger';
 
@@ -271,6 +272,72 @@ const importProductReviews = async (): Promise<void> => {
   }
 };
 
+// Import Wardrobe Items
+const importWardrobeItems = async (): Promise<void> => {
+  try {
+    const filePath = path.join(__dirname, '../../datafiles/wardrobe_items.csv');
+    
+    // Read the file content directly to handle the specific CSV format
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const lines = fileContent.split('\n');
+    
+    // Skip header line and empty lines
+    const validLines = lines.slice(1).filter(line => line.trim() !== '');
+    
+    // Process each line manually
+    const validData = [];
+    for (const line of validLines) {
+      const columns = line.split(',');
+      if (columns.length >= 3 && columns[0] && columns[1] && columns[2]) {
+        validData.push({
+          user_id: columns[0],
+          image_url: columns[1],
+          type: columns[2],
+          tags: columns[3] || ''
+        });
+      }
+    }
+    
+    logger.info(`Importing ${validData.length} wardrobe items...`);
+    
+    // Clear existing wardrobe items before importing
+    await WardrobeItem.deleteMany({});
+    
+    let successCount = 0;
+    
+    for (const item of validData) {
+      // Ensure userId is a valid number
+      const userId = parseInt(item.user_id);
+      if (isNaN(userId)) {
+        logger.warn(`Skipping item with invalid userId: ${item.user_id}`);
+        continue;
+      }
+      
+      // Parse tags if they exist
+      const tags = item.tags ? item.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
+      
+      const wardrobeItem = {
+        userId,
+        imageUrl: item.image_url,
+        type: item.type, // Accept any type string
+        tags
+      };
+      
+      try {
+        await WardrobeItem.create(wardrobeItem);
+        successCount++;
+      } catch (err) {
+        logger.error(`Error creating wardrobe item: ${err}`);
+        logger.error(`Item data: ${JSON.stringify(wardrobeItem)}`);
+      }
+    }
+    
+    logger.info(`Successfully imported ${successCount} wardrobe items`);
+  } catch (error) {
+    logger.error(`Error importing wardrobe items: ${error}`);
+  }
+};
+
 // Main import function
 const importAllData = async (): Promise<void> => {
   try {
@@ -285,6 +352,7 @@ const importAllData = async (): Promise<void> => {
     await importTransactions();
     await importPageViews();
     await importProductReviews();
+    await importWardrobeItems();
     
     logger.info('All data imported successfully');
   } catch (error) {
@@ -316,5 +384,6 @@ export {
   importCustomers, 
   importTransactions,
   importPageViews,
-  importProductReviews 
+  importProductReviews,
+  importWardrobeItems 
 };

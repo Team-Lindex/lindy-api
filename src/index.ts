@@ -19,6 +19,7 @@ import transactionRoutes from './routes/transactionRoutes';
 import recommendationRoutes from './routes/recommendationRoutes';
 import pageViewRoutes from './routes/pageViewRoutes';
 import productReviewRoutes from './routes/productReviewRoutes';
+import wardrobeRoutes from './routes/wardrobeRoutes';
 
 // Initialize express app
 const app: Express = express();
@@ -58,6 +59,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/page-views', pageViewRoutes);
 app.use('/api/reviews', productReviewRoutes);
+app.use('/api/wardrobe', wardrobeRoutes);
 
 // Apply stricter rate limiting to analytics endpoints
 app.use('/api/transactions/analytics', analyticsLimiter);
@@ -79,6 +81,7 @@ app.get('/', (req: Request, res: Response) => {
       recommendations: '/api/recommendations',
       pageViews: '/api/page-views',
       reviews: '/api/reviews',
+      wardrobe: '/api/wardrobe',
     },
     documentation: '/api-docs',
   });
