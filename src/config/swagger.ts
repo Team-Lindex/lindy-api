@@ -17,6 +17,10 @@ const options: swaggerJSDoc.Options = {
         url: 'http://localhost:3000',
         description: 'Development server',
       },
+      {
+        url: 'https://lindy-api.martinsson.io',
+        description: 'Production server',
+      },
     ],
     tags: [
       {
