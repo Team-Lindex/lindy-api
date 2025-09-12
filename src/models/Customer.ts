@@ -21,6 +21,10 @@ const CustomerSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    fullBodyPicture: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );
