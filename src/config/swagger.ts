@@ -67,6 +67,14 @@ const options: swaggerJSDoc.Options = {
         name: 'Wardrobe',
         description: 'Wardrobe items endpoints',
       },
+      {
+        name: 'Agent',
+        description: 'AI agent endpoints',
+      },
+      {
+        name: 'Outfit',
+        description: 'AI-generated outfit endpoints',
+      },
     ],
     paths: {
       '/api/styles': {
@@ -1350,6 +1358,118 @@ const options: swaggerJSDoc.Options = {
               }
             },
             '404': { $ref: '#/components/responses/NotFound' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/outfit/generate': {
+        post: {
+          tags: ['Outfit'],
+          summary: 'Generate an outfit for a user based on their wardrobe and occasion',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'occasion'],
+                  properties: {
+                    userId: {
+                      type: 'integer',
+                      description: 'The ID of the user whose wardrobe to use',
+                      example: 1
+                    },
+                    occasion: {
+                      type: 'string',
+                      description: 'The occasion for which to create an outfit',
+                      example: 'Business meeting'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          outfit: {
+                            type: 'object',
+                            properties: {
+                              top: { $ref: '#/components/schemas/WardrobeItem' },
+                              bottom: { $ref: '#/components/schemas/WardrobeItem' },
+                              dress: { $ref: '#/components/schemas/WardrobeItem' },
+                              accessory: { $ref: '#/components/schemas/WardrobeItem' },
+                              jacket: { $ref: '#/components/schemas/WardrobeItem' },
+                              bag: { $ref: '#/components/schemas/WardrobeItem' }
+                            }
+                          },
+                          occasion: { type: 'string' },
+                          description: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { $ref: '#/components/responses/BadRequest' },
+            '500': { $ref: '#/components/responses/InternalServerError' }
+          }
+        }
+      },
+      '/api/agent/ask': {
+        post: {
+          tags: ['Agent'],
+          summary: 'Ask the AI agent a question',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['question'],
+                  properties: {
+                    question: {
+                      type: 'string',
+                      description: 'The question to ask the agent',
+                      example: 'What are the best clothing items for summer?'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Successful operation',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          question: { type: 'string' },
+                          answer: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { $ref: '#/components/responses/BadRequest' },
             '500': { $ref: '#/components/responses/InternalServerError' }
           }
         }
