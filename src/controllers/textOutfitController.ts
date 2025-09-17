@@ -85,15 +85,89 @@ export const processTextForOutfit = async (req: any, res: Response): Promise<voi
 
 
 export const processTextForOutfitTest = async (req: any, res: Response): Promise<void> => {
-  console.log("requesting outfit test");
+  try {
+    console.log("requesting outfit test");
 
-  const result = await testOutfitAgent();
-
-  res.status(200).json({
-    success: true,
-    data: result
-  });
-  
+    const result = await testOutfitAgent();
+    console.log("Agent response:", result.text);
+    
+    // Extract JSON from the markdown code block
+    const jsonMatch = result.text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        // Parse the extracted JSON
+        const jsonData = JSON.parse(jsonMatch[1].trim());
+        console.log("Parsed JSON data:", jsonData);
+        
+        // Ensure we're returning the expected format
+        if (jsonData.outfits && Array.isArray(jsonData.outfits)) {
+          res.status(200).json({
+            success: true,
+            data: jsonData.outfits
+          });
+        } else {
+          // If the JSON doesn't have the expected structure, return it as is
+          res.status(200).json({
+            success: true,
+            data: jsonData
+          });
+        }
+      } catch (jsonError) {
+        console.error("Error parsing JSON:", jsonError);
+        res.status(200).json({
+          success: false,
+          error: "Failed to parse JSON from response",
+          rawText: result.text
+        });
+      }
+    } else {
+      // If no JSON found in code block, try to find raw JSON
+      const rawJsonMatch = result.text.match(/\{[\s\S]*?\}(?=\s*$|$)/);
+      
+      if (rawJsonMatch) {
+        try {
+          const jsonData = JSON.parse(rawJsonMatch[0]);
+          console.log("Parsed raw JSON data:", jsonData);
+          
+          // Ensure we're returning the expected format
+          if (jsonData.outfits && Array.isArray(jsonData.outfits)) {
+            res.status(200).json({
+              success: true,
+              data: jsonData.outfits
+            });
+          } else {
+            // If the JSON doesn't have the expected structure, return it as is
+            res.status(200).json({
+              success: true,
+              data: jsonData
+            });
+          }
+        } catch (jsonError) {
+          console.error("Error parsing raw JSON:", jsonError);
+          res.status(200).json({
+            success: false,
+            error: "Failed to parse raw JSON from response",
+            rawText: result.text
+          });
+        }
+      } else {
+        console.error("No JSON found in response");
+        res.status(200).json({
+          success: false,
+          error: "No JSON found in response",
+          rawText: result.text
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in processTextForOutfitTest:", error);
+    res.status(500).json({
+      success: false,
+      error: 'Error processing outfit test',
+      details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+    });
+  }
 };
 
 export const mockController = async (req: any, res: Response): Promise<void> => {
@@ -105,9 +179,11 @@ export const mockController = async (req: any, res: Response): Promise<void> => 
     { imageUrl: "https://lindy-api.martinsson.io/temp/image3.png"},
   ]
 
-  res.status(200).json({
-    success: true,
-    data: outfits
-  });
+  setTimeout(() => {
+    res.status(200).json({
+      success: true,
+      data: outfits
+    });
+  }, 5000);
 }
   
