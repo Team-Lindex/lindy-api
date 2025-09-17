@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createOutfitWithText, generateOutfitImage } from '../voltagent';
+import { createOutfitWithText, generateOutfitImage, testOutfitAgent } from '../voltagent';
 import logger from '../utils/logger';
 import path from 'path';
 import fs from 'fs';
@@ -47,17 +47,28 @@ export const processTextForOutfit = async (req: any, res: Response): Promise<voi
     // Write the audio buffer to a temporary file
     fs.writeFileSync(filePath, audioResponse);
     
-    // Return both the outfit data and the audio file path
-
-    const imageResponse = await generateOutfitImage(outfit);
-
+    // Generate an image for the outfit if it doesn't already have one
+    let imageUrl = outfit.imageUrl;
+    let imageError = outfit.imageError;
+    
+    if (!imageUrl && outfit.outfit) {
+      console.log("Generating outfit image in controller");
+      const imageResponse = await generateOutfitImage(outfit);
       
-
+      if (imageResponse.success && imageResponse.url) {
+        imageUrl = imageResponse.url;
+      } else {
+        imageError = imageResponse.error;
+      }
+    }
+    
+    // Return the outfit data, image URL, and audio file path
     res.status(200).json({
       success: true,
       data: {
         outfit: outfit.outfit,
-        imageResponse,
+        imageUrl,
+        imageError,
         audioUrl: `/temp/${fileName}`
       }
     });
@@ -71,3 +82,32 @@ export const processTextForOutfit = async (req: any, res: Response): Promise<voi
     });
   }
 };
+
+
+export const processTextForOutfitTest = async (req: any, res: Response): Promise<void> => {
+  console.log("requesting outfit test");
+
+  const result = await testOutfitAgent();
+
+  res.status(200).json({
+    success: true,
+    data: result
+  });
+  
+};
+
+export const mockController = async (req: any, res: Response): Promise<void> => {
+  console.log("requesting outfit");
+
+  const outfits = [
+    { imageUrl: "https://lindy-api.martinsson.io/temp/image1.png"},
+    { imageUrl: "https://lindy-api.martinsson.io/temp/image2.png"},
+    { imageUrl: "https://lindy-api.martinsson.io/temp/image3.png"},
+  ]
+
+  res.status(200).json({
+    success: true,
+    data: outfits
+  });
+}
+  
