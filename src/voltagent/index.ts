@@ -5,6 +5,7 @@ import { openai } from "@ai-sdk/openai"; // Example model
 import { createPinoLogger } from "@voltagent/logger";
 import { z } from "zod";
 import WardrobeItem from "../models/WardrobeItem";
+import { OpenAIVoiceProvider } from "@voltagent/voice";
 
 // Create logger (optional but recommended)
 const logger = createPinoLogger({
@@ -25,6 +26,12 @@ export const agent = new Agent({
     }),
   }),
 });
+
+const openAIVoice = new OpenAIVoiceProvider({
+    apiKey: process.env.OPENAI_API_KEY || '', // Ensure API key is set in environment variables
+    ttsModel: "tts-1",
+    voice: "alloy", // Available voices: alloy, echo, fable, onyx, nova, shimmer
+  });
 
 // Define a simplified approach without using tools
 // We'll fetch the wardrobe items directly in the createOutfit function
@@ -157,5 +164,177 @@ Please create an outfit using these items that would be appropriate for the occa
       description: "An error occurred while generating the outfit.",
       error: String(error)
     };
+  }
+};
+
+// Import the stream module properly
+import { Readable } from 'stream';
+
+// Voice transcription function - converts audio to text
+export const transcribeAudio = async (audioBuffer: Buffer): Promise<string> => {
+  try {
+    // Create a readable stream from the buffer
+    const audioStream = new Readable();
+    audioStream.push(audioBuffer);
+    audioStream.push(null); // Signal the end of the stream
+    
+    // Use the OpenAI voice provider to transcribe the audio
+    const transcription = await openAIVoice.listen(audioStream);
+    return transcription as string;
+  } catch (error) {
+    console.error("Error transcribing audio:", error);
+    throw new Error(`Failed to transcribe audio: ${error}`);
+  }
+};
+
+// Text-to-speech function - converts text to audio
+export const textToSpeech = async (text: string): Promise<Buffer> => {
+  try {
+    // Use the OpenAI voice provider to generate speech
+    const audioStream = await openAIVoice.speak(text);
+    
+    // Convert the stream to a buffer
+    return streamToBuffer(audioStream);
+  } catch (error) {
+    console.error("Error generating speech:", error);
+    throw new Error(`Failed to generate speech: ${error}`);
+  }
+};
+
+// Helper function to convert a ReadableStream to a Buffer
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    
+    stream.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    
+    stream.on('end', () => {
+      resolve(Buffer.concat(chunks));
+    });
+    
+    stream.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+// Text-based outfit creation function with audio response
+export const createOutfitWithText = async (userId: number, questionText: string): Promise<{outfit: any, audioResponse: Buffer}> => {
+  try {
+    // Extract the occasion from the text
+    // This is a simple implementation - in a real app, you might want to use NLP to extract the occasion
+    const occasion = questionText.replace(/^.*?for\s+(?:a|an)\s+(.+?)(?:\.|$)/i, '$1').trim();
+    
+    // Generate the outfit using the existing function
+    const outfitResponse = await createOutfit(userId, occasion);
+    
+    // Create a spoken response
+    let responseText = "";
+    if (outfitResponse.error && !outfitResponse.outfit) {
+      responseText = `I'm sorry, I couldn't create an outfit for ${occasion}. ${outfitResponse.error}`;
+    } else {
+      responseText = `For your ${occasion}, I recommend an outfit with `;
+      
+      if (outfitResponse.outfit.top) {
+        responseText += `a ${outfitResponse.outfit.top.type} for your top, `;
+      }
+      
+      if (outfitResponse.outfit.bottom) {
+        responseText += `${outfitResponse.outfit.bottom.type} for your bottom, `;
+      } else if (outfitResponse.outfit.dress) {
+        responseText += `a ${outfitResponse.outfit.dress.type}, `;
+      }
+      
+      if (outfitResponse.outfit.accessory) {
+        responseText += `and a ${outfitResponse.outfit.accessory.type} as an accessory. `;
+      }
+      
+      if (outfitResponse.outfit.jacket) {
+        responseText += `Don't forget to add a ${outfitResponse.outfit.jacket.type}. `;
+      }
+      
+      if (outfitResponse.outfit.bag) {
+        responseText += `Complete the look with a ${outfitResponse.outfit.bag.type}. `;
+      }
+      
+      if (outfitResponse.description) {
+        responseText += outfitResponse.description;
+      }
+    }
+    
+    // Convert the text response to speech
+    const audioResponse = await textToSpeech(responseText);
+    
+    // Return both the outfit data and the audio response
+    return {
+      outfit: outfitResponse,
+      audioResponse
+    };
+  } catch (error) {
+    console.error("Error in text-based outfit creation:", error);
+    throw new Error(`Failed to process text request: ${error}`);
+  }
+};
+
+// Voice-based outfit creation function
+export const createOutfitWithVoice = async (userId: number, audioBuffer: Buffer): Promise<{outfit: any, audioResponse: Buffer}> => {
+  try {
+    // Step 1: Transcribe the audio to text
+    const transcription = await transcribeAudio(audioBuffer);
+    
+    // Step 2: Extract the occasion from the transcription
+    // This is a simple implementation - in a real app, you might want to use NLP to extract the occasion
+    const occasion = transcription.replace(/^.*?for\s+(?:a|an)\s+(.+?)(?:\.|$)/i, '$1').trim();
+    
+    // Step 3: Generate the outfit using the existing function
+    const outfitResponse = await createOutfit(userId, occasion);
+    
+    // Step 4: Create a spoken response
+    let responseText = "";
+    if (outfitResponse.error && !outfitResponse.outfit) {
+      responseText = `I'm sorry, I couldn't create an outfit for ${occasion}. ${outfitResponse.error}`;
+    } else {
+      responseText = `For your ${occasion}, I recommend an outfit with `;
+      
+      if (outfitResponse.outfit.top) {
+        responseText += `a ${outfitResponse.outfit.top.type} for your top, `;
+      }
+      
+      if (outfitResponse.outfit.bottom) {
+        responseText += `${outfitResponse.outfit.bottom.type} for your bottom, `;
+      } else if (outfitResponse.outfit.dress) {
+        responseText += `a ${outfitResponse.outfit.dress.type}, `;
+      }
+      
+      if (outfitResponse.outfit.accessory) {
+        responseText += `and a ${outfitResponse.outfit.accessory.type} as an accessory. `;
+      }
+      
+      if (outfitResponse.outfit.jacket) {
+        responseText += `Don't forget to add a ${outfitResponse.outfit.jacket.type}. `;
+      }
+      
+      if (outfitResponse.outfit.bag) {
+        responseText += `Complete the look with a ${outfitResponse.outfit.bag.type}. `;
+      }
+      
+      if (outfitResponse.description) {
+        responseText += outfitResponse.description;
+      }
+    }
+    
+    // Step 5: Convert the text response to speech
+    const audioResponse = await textToSpeech(responseText);
+    
+    // Return both the outfit data and the audio response
+    return {
+      outfit: outfitResponse,
+      audioResponse
+    };
+  } catch (error) {
+    console.error("Error in voice-based outfit creation:", error);
+    throw new Error(`Failed to process voice request: ${error}`);
   }
 };

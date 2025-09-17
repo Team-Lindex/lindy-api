@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import path from 'path';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { connectDB } from './config/database';
@@ -22,6 +23,7 @@ import productReviewRoutes from './routes/productReviewRoutes';
 import wardrobeRoutes from './routes/wardrobeRoutes';
 import agentRoutes from './routes/agentRoutes';
 import outfitRoutes from './routes/outfitRoutes';
+import voiceRoutes from './routes/voiceRoutes';
 
 // Initialize VoltAgent
 import './voltagent';
@@ -40,6 +42,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the temp directory
+app.use('/temp', express.static(path.join(__dirname, '../temp')));
 
 // Apply HTTP request logging
 app.use(morganMiddleware);
@@ -67,6 +72,7 @@ app.use('/api/reviews', productReviewRoutes);
 app.use('/api/wardrobe', wardrobeRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/outfit', outfitRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Apply stricter rate limiting to analytics endpoints
 app.use('/api/transactions/analytics', analyticsLimiter);

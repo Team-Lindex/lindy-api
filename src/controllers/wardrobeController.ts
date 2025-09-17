@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import WardrobeItem from '../models/WardrobeItem';
 import cacheManager from '../utils/cacheManager';
 import logger from '../utils/logger';
+import mongoose from 'mongoose';
 
 // Get all wardrobe items with pagination
 export const getAllWardrobeItems = async (req: Request, res: Response): Promise<void> => {
@@ -227,6 +228,82 @@ export const getWardrobeSummaryByUserId = async (req: Request, res: Response): P
     });
   } catch (error) {
     logger.error(`Error fetching wardrobe summary by user ID: ${error}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// Update wardrobe item by ID
+export const updateWardrobeItem = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid wardrobe item ID format'
+      });
+      return;
+    }
+    
+    const { imageUrl, type, tags, userId } = req.body;
+    
+    // Build update object with only provided fields
+    const updateData: { [key: string]: any } = {};
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (type !== undefined) updateData.type = type;
+    if (tags !== undefined) updateData.tags = tags;
+    if (userId !== undefined) {
+      const parsedUserId = parseInt(userId);
+      if (isNaN(parsedUserId)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid user ID format in request body'
+        });
+        return;
+      }
+      updateData.userId = parsedUserId;
+    }
+    
+    // Check if update data is empty
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'No valid fields provided for update'
+      });
+      return;
+    }
+    
+    // Find and update the wardrobe item
+    const wardrobeItem = await WardrobeItem.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!wardrobeItem) {
+      res.status(404).json({
+        success: false,
+        error: 'Wardrobe item not found'
+      });
+      return;
+    }
+    
+    // Clear related caches
+    if (wardrobeItem.userId) {
+      cacheManager.delete(`wardrobe_user_${wardrobeItem.userId}`);
+      cacheManager.delete(`wardrobe_summary_user_${wardrobeItem.userId}`);
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: wardrobeItem
+    });
+  } catch (error) {
+    logger.error(`Error updating wardrobe item: ${error}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'

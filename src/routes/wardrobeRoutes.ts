@@ -4,7 +4,8 @@ import {
   getWardrobeItemsByUserId,
   getWardrobeItemsByType,
   getWardrobeItemsByTag,
-  getWardrobeSummaryByUserId
+  getWardrobeSummaryByUserId,
+  updateWardrobeItem
 } from '../controllers/wardrobeController';
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.get('/tag/:tag', getWardrobeItemsByTag);
 
 // GET /api/wardrobe/summary/:userId - Get wardrobe summary by user ID
 router.get('/summary/:userId', getWardrobeSummaryByUserId);
+
+// PUT /api/wardrobe/:id - Update a wardrobe item by ID
+router.put('/:id', updateWardrobeItem);
 
 export default router;
