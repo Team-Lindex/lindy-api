@@ -15,9 +15,23 @@ const logger = createPinoLogger({
   level: "info",
 });
 
-export const generateOutfitImage = async (outfit: any) => {
+export const generateOutfitImage = async (input: any) => {
   try {
     console.log("Generating outfit image");
+    
+    // Handle both direct outfit object and args.outfit structure
+    let outfit: any;
+    
+    if (input.outfit) {
+      // If input has an outfit property, use that (from tool args)
+      outfit = input.outfit;
+      console.log("Using outfit from args.outfit");
+    } else {
+      // Otherwise assume the input itself is the outfit
+      outfit = input;
+      console.log("Using direct outfit object");
+    }
+    
     console.log("Outfit data:", JSON.stringify(outfit, null, 2));
     
     // Validate the outfit object structure
@@ -91,9 +105,11 @@ const generatorTool = createTool({
     outfit: z.any().describe("The outfit data object containing top, bottom, and accessory items with imageUrls"),
   }),
   execute: async (args) => {
+    console.log("HERE 😀")
+    console.log(args)
     try {
       // Call the generateOutfitImage function with the provided outfit data
-      const result = await generateOutfitImage(args.outfit);
+      const result = await generateOutfitImage(args);
       
       // Check if the image generation was successful
       if (!result.success) {
@@ -218,7 +234,15 @@ When provided with a user ID and an occasion, your task is to:
      "description": "brief description of why these items work well together"
    }
 
-4. After creating the outfit, you can use the generateOutfitImage tool to generate an image for the outfit.
+4. After creating the outfit, use the generateOutfitImage tool to generate an image for the outfit. You have to provide the JSON outfit data as a parameter to the tool.
+
+5. Always return the response as valid JSON with this structure: {
+outfits: [
+  imageUrl: "the url to the generated image",
+  outfit: "the outfit data"
+]
+
+}
 
 Always return a valid JSON response.`,
   model: openai("gpt-4o-mini"),
@@ -236,8 +260,30 @@ export const askAgent = async (question: string) => {
 };
 
 export const testOutfitAgent = async () => {
-  const result = await outfitAgent.generateText("I need you to create an outfit for user with ID 1 for a business meeting.");
-  console.log(result);
+  const prompt = `
+I need you to create an outfit for user with ID 1 for a business meeting.
+
+Please follow these steps:
+1. Use the getUserWardrobe tool to fetch the user's wardrobe items
+2. Select appropriate items for the occasion from the wardrobe
+3. Return a complete outfit with at least a top, bottom (or dress), and accessory
+4. Use the generateOutfitImage tool to generate an image for the outfit
+5. Make sure to explain why the outfit works well for the occasion
+
+Your response must include valid JSON with the structure:
+{
+  "outfits": [
+    {
+      "imageUrl": "url to generated image",
+      "outfit": { /* outfit data with top, bottom, accessory, etc. */ }
+    }
+  ]
+}
+`;
+
+  console.log("Sending prompt to outfit agent:", prompt);
+  const result = await outfitAgent.generateText(prompt);
+  console.log("Got result from outfit agent");
   return result;
 };
 
