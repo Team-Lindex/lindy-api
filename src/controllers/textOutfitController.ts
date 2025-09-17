@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import { createOutfitWithText } from '../voltagent';
+import { createOutfitWithText, generateOutfitImage } from '../voltagent';
 import logger from '../utils/logger';
 import path from 'path';
 import fs from 'fs';
+import axios from 'axios';
 
 // Create temp directory for audio files if it doesn't exist
 const tempDir = path.join(__dirname, '../../temp');
@@ -15,6 +16,7 @@ if (!fs.existsSync(tempDir)) {
  * @route POST /api/voice/text-outfit
  */
 export const processTextForOutfit = async (req: any, res: Response): Promise<void> => {
+  console.log("requesting outfit");
   try {
     // Validate request body
     const { userId, question } = req.body;
@@ -46,10 +48,16 @@ export const processTextForOutfit = async (req: any, res: Response): Promise<voi
     fs.writeFileSync(filePath, audioResponse);
     
     // Return both the outfit data and the audio file path
+
+    const imageResponse = await generateOutfitImage(outfit);
+
+      
+
     res.status(200).json({
       success: true,
       data: {
-        outfit,
+        outfit: outfit.outfit,
+        imageResponse,
         audioUrl: `/temp/${fileName}`
       }
     });

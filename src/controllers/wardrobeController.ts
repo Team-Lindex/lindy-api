@@ -10,13 +10,13 @@ export const getAllWardrobeItems = async (req: Request, res: Response): Promise<
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
-    
+
     const total = await WardrobeItem.countDocuments();
     const wardrobeItems = await WardrobeItem.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    
+
     res.status(200).json({
       success: true,
       count: wardrobeItems.length,
@@ -40,7 +40,7 @@ export const getAllWardrobeItems = async (req: Request, res: Response): Promise<
 export const getWardrobeItemsByUserId = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = parseInt(req.params.userId);
-    
+
     if (isNaN(userId)) {
       res.status(400).json({
         success: false,
@@ -48,9 +48,9 @@ export const getWardrobeItemsByUserId = async (req: Request, res: Response): Pro
       });
       return;
     }
-    
+
     const cacheKey = `wardrobe_user_${userId}`;
-    
+
     // Try to get from cache or fetch from database
     const wardrobeItems = await cacheManager.getOrSet(
       cacheKey,
@@ -60,7 +60,7 @@ export const getWardrobeItemsByUserId = async (req: Request, res: Response): Pro
       },
       300 // Cache for 5 minutes
     );
-    
+
     // Return empty array instead of 404 when no items are found
     res.status(200).json({
       success: true,
@@ -82,14 +82,14 @@ export const getWardrobeItemsByType = async (req: Request, res: Response): Promi
   try {
     const { type } = req.params;
     const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-    
+
     const query: any = { type };
     if (userId !== undefined && !isNaN(userId)) {
       query.userId = userId;
     }
-    
+
     const cacheKey = `wardrobe_type_${type}${userId !== undefined ? `_user_${userId}` : ''}`;
-    
+
     // Try to get from cache or fetch from database
     const wardrobeItems = await cacheManager.getOrSet(
       cacheKey,
@@ -99,7 +99,7 @@ export const getWardrobeItemsByType = async (req: Request, res: Response): Promi
       },
       300 // Cache for 5 minutes
     );
-    
+
     if (!wardrobeItems || wardrobeItems.length === 0) {
       res.status(404).json({
         success: false,
@@ -107,7 +107,7 @@ export const getWardrobeItemsByType = async (req: Request, res: Response): Promi
       });
       return;
     }
-    
+
     res.status(200).json({
       success: true,
       count: wardrobeItems.length,
@@ -128,14 +128,14 @@ export const getWardrobeItemsByTag = async (req: Request, res: Response): Promis
   try {
     const { tag } = req.params;
     const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-    
+
     const query: any = { tags: tag };
     if (userId !== undefined && !isNaN(userId)) {
       query.userId = userId;
     }
-    
+
     const wardrobeItems = await WardrobeItem.find(query);
-    
+
     if (!wardrobeItems || wardrobeItems.length === 0) {
       res.status(404).json({
         success: false,
@@ -143,7 +143,7 @@ export const getWardrobeItemsByTag = async (req: Request, res: Response): Promis
       });
       return;
     }
-    
+
     res.status(200).json({
       success: true,
       count: wardrobeItems.length,
@@ -162,7 +162,7 @@ export const getWardrobeItemsByTag = async (req: Request, res: Response): Promis
 export const getWardrobeSummaryByUserId = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = parseInt(req.params.userId);
-    
+
     if (isNaN(userId)) {
       res.status(400).json({
         success: false,
@@ -170,22 +170,22 @@ export const getWardrobeSummaryByUserId = async (req: Request, res: Response): P
       });
       return;
     }
-    
+
     const cacheKey = `wardrobe_summary_user_${userId}`;
-    
+
     // Try to get from cache or fetch from database
     const summary = await cacheManager.getOrSet(
       cacheKey,
       async () => {
         logger.info(`Cache miss for ${cacheKey}, fetching from database`);
-        
+
         // Get count by type
         const typeCounts = await WardrobeItem.aggregate([
           { $match: { userId } },
           { $group: { _id: '$type', count: { $sum: 1 } } },
           { $sort: { count: -1 } }
         ]);
-        
+
         // Get all tags
         const tagsResult = await WardrobeItem.aggregate([
           { $match: { userId } },
@@ -194,9 +194,9 @@ export const getWardrobeSummaryByUserId = async (req: Request, res: Response): P
           { $match: { _id: { $ne: '' } } },
           { $sort: { count: -1 } }
         ]);
-        
+
         const totalItems = await WardrobeItem.countDocuments({ userId });
-        
+
         return {
           totalItems,
           typeBreakdown: typeCounts.map(item => ({
@@ -212,7 +212,7 @@ export const getWardrobeSummaryByUserId = async (req: Request, res: Response): P
       },
       600 // Cache for 10 minutes
     );
-    
+
     if (!summary || summary.totalItems === 0) {
       res.status(404).json({
         success: false,
@@ -220,7 +220,7 @@ export const getWardrobeSummaryByUserId = async (req: Request, res: Response): P
       });
       return;
     }
-    
+
     res.status(200).json({
       success: true,
       data: summary,
@@ -244,63 +244,57 @@ export const updateWardrobeItem = async (req: Request, res: Response): Promise<v
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
-        error: 'Invalid wardrobe item ID format'
+        error: 'Invalid item ID format'
       });
       return;
     }
-    
-    const { imageUrl, type, tags, userId } = req.body;
-    
+
+    const { userId, imageUrl, type, tags } = req.body;
+
     // Build update object with only provided fields
-    const updateData: { [key: string]: any } = {};
+    const updateData: any = {};
+    if (userId !== undefined) updateData.userId = userId;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
     if (type !== undefined) updateData.type = type;
     if (tags !== undefined) updateData.tags = tags;
-    if (userId !== undefined) {
-      const parsedUserId = parseInt(userId);
-      if (isNaN(parsedUserId)) {
-        res.status(400).json({
-          success: false,
-          error: 'Invalid user ID format in request body'
-        });
-        return;
-      }
-      updateData.userId = parsedUserId;
-    }
-    
+
     // Check if update data is empty
     if (Object.keys(updateData).length === 0) {
       res.status(400).json({
         success: false,
-        error: 'No valid fields provided for update'
+        error: 'No update data provided'
       });
       return;
     }
-    
+
     // Find and update the wardrobe item
-    const wardrobeItem = await WardrobeItem.findByIdAndUpdate(
+    const updatedItem = await WardrobeItem.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
-    
-    if (!wardrobeItem) {
+
+    if (!updatedItem) {
       res.status(404).json({
         success: false,
         error: 'Wardrobe item not found'
       });
       return;
     }
-    
-    // Clear related caches
-    if (wardrobeItem.userId) {
-      cacheManager.delete(`wardrobe_user_${wardrobeItem.userId}`);
-      cacheManager.delete(`wardrobe_summary_user_${wardrobeItem.userId}`);
+
+    // Clear related cache entries
+    if (updatedItem.userId) {
+      cacheManager.delete(`wardrobe_user_${updatedItem.userId}`);
+      cacheManager.delete(`wardrobe_summary_user_${updatedItem.userId}`);
+    }
+    if (updatedItem.type) {
+      cacheManager.delete(`wardrobe_type_${updatedItem.type}`);
     }
     
+    // Return the updated item
     res.status(200).json({
       success: true,
-      data: wardrobeItem
+      data: updatedItem
     });
   } catch (error) {
     logger.error(`Error updating wardrobe item: ${error}`);
