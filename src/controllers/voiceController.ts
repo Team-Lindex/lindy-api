@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createOutfitWithVoice } from '../voltagent';
+import { createOutfitWithVoice, generateOutfitImage } from '../voltagent';
 import logger from '../utils/logger';
 import multer from 'multer';
 import path from 'path';
@@ -70,11 +70,28 @@ export const processVoiceForOutfit = async (req: any, res: Response): Promise<vo
     // Write the audio buffer to a temporary file
     fs.writeFileSync(filePath, audioResponse);
     
-    // Return both the outfit data and the audio file path
+    // Generate an image for the outfit if it doesn't already have one
+    let imageUrl = outfit.imageUrl;
+    let imageError = outfit.imageError;
+    
+    if (!imageUrl && outfit.outfit) {
+      console.log("Generating outfit image in voice controller");
+      const imageResponse = await generateOutfitImage(outfit);
+      
+      if (imageResponse.success && imageResponse.url) {
+        imageUrl = imageResponse.url;
+      } else {
+        imageError = imageResponse.error;
+      }
+    }
+    
+    // Return the outfit data, image URL, and audio file path
     res.status(200).json({
       success: true,
       data: {
-        outfit,
+        outfit: outfit.outfit,
+        imageUrl,
+        imageError,
         audioUrl: `/temp/${fileName}`
       }
     });
